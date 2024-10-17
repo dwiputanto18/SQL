@@ -1,0 +1,116 @@
+-- PRACTICE
+-- 1. Tampilkan First_name dan Last_name dari tabel actor
+SELECT first_name, last_name
+	from actor a 
+	
+-- 2. Tampilkan gabungan first_name dan last_name dengan huruf kecil
+-- dan nama kolom actor_name
+SELECT LOWER(first_name||last_name) as actor_name 
+	from actor a 
+
+-- 3. Kamu mengingat aktor dengan nama depan "JOE". Tampilkan
+-- actor_id, first_name dan last_name orang tersebut
+SELECT actor_id , first_name , last_name 
+	from actor a 
+	where first_name LIKE "JOE"
+
+-- 4. Cari orang yang nama belakangnya mengandung kata "LI", tetapi coba 
+-- urutkan berdasarkan nama belakang. Jika ada orang dengan nama belakang
+-- yang sama, prioritaskan pengurutan dengan nama depan
+SELECT actor_id , first_name , last_name 
+	from actor a 
+	where last_name LIKE "%LI%"
+	ORDER BY last_name, first_name
+	
+-- 5. Dengan fungsi IN di SQL, tampilkan ID negara afghanistan, bangladesh, china
+SELECT country_id , country 
+	from country c 
+	where country IN ('Afghanistan', 'Bangladesh', 'China')
+	
+-- 6. Tampilkan semua nama belakang aktor dan juga hitung ada berawpa banyak aktor dengan
+-- nama belakang tersebut
+SELECT last_name, COUNT(last_name) 
+	from actor a 
+	group by last_name 
+	
+-- 7. Sama seperti no. 6, akan tetapi sekarang buang nama belakang aktor yang hanya dimiliki 1 orang
+SELECT last_name, COUNT(last_name) as banyak
+	from actor a 
+	group by last_name
+	having banyak >= 2
+	
+-- 8. Cari nama depan, nama belakang dan alamt dari setiap staff member, gunakan tabel staff dan address
+SELECT s.first_name , s.last_name , a.address 
+	from staff s join address a on s.address_id = a.address_id 
+
+-- 9. Cari berapa banyak penjualan(amount) yang berhasil dibuat setiap staff_member pada bulan agustus 2005
+-- gunakan tabel staff dan payment
+SELECT s.staff_id , SUM(p.amount)
+	from staff s left join payment p on s.staff_id = p.staff_id 
+	WHERE p.payment_date >= '2005-08-01' AND p.payment_date <= '2005-08-31'
+	group by s.staff_id 
+	
+-- 10. Tampilkan judul film dan berapa banyak aktor di setiap film
+SELECT f.title , COUNT(a.actor_id) 
+	from film f 
+	right join film_actor fa on f.film_id = fa.film_id 
+	right join actor a on fa.actor_id = a.actor_id 
+group by f.title 
+
+-- 11. Cari informasi kustomer dan berapa banyak biaya yang dikeluarkan oleh setiap kustomer
+-- urutkan hasil pencarian berdasasarkan nama belakang kustomer secara abjad
+SELECT c.first_name , c.last_name , c.email , SUM(p.amount) as total_amount
+	from customer c join payment p on c.customer_id = p.customer_id 
+	group by c.first_name 
+	ORDER BY c.last_name 
+
+-- 12. Perusahaan ingin membuat campaign  melalui email di kanada. cari semua email kustomer yang berasal dari kanada
+-- gunakan CTE jika bisa
+	
+-- dengan subquerry
+SELECT c.email , cust_canada.country
+	from customer c join 
+		(SELECT a.address_id, a.address , c.city , c2.country 
+	from address a left join city c on a.city_id = c.city_id 
+	left join country c2 on c.country_id = c2.country_id
+	where c2.country = 'Canada'
+	group by a.address ) as cust_canada
+	on c.address_id = cust_canada.address_id
+	order by email 
+	
+-- dengan CTE
+with location_info as(
+	SELECT address_id, a.city_id, c.country_id, city, country
+	from address a join city c on a.city_id = c.city_id 
+	JOIN country c2 on c.country_id = c2.country_id
+)
+SELECT email
+	from customer
+	where address_id in (SELECT address_id from location_info where country = 'Canada')
+	order by email 
+	
+-- 13. Tampilkan nama film yang paling sering disewa/dirental dan urutkan dari yang paling populer
+SELECT f.title as film_title, COUNT(rental_id) 
+	from rental r join inventory i on r.inventory_id = i.inventory_id 
+	JOIN film f on i.film_id = f.film_id 
+	group by film_title
+	order by count(rental_id) desc
+	
+-- 14. Buat querry yang menunjukan berapa banyak revenue(amount) yang diperoleh masing-masing toko
+SELECT s.store_id , SUM(p.amount) as total_revenue
+	from store s join inventory i on s.store_id = i.store_id 
+	join rental r on i.inventory_id = r.inventory_id 
+	join payment p on r.rental_id = p.rental_id 
+group by s.store_id 
+	
+-- 15. cari 5 genre dengan gross revenue tertinggi, diurutkan dari yang paling laku terlebih dahulu
+-- HINT = genre terdapat di tabel film_category
+SELECT c.name , SUM(p.amount) as gross_revenue 
+	from payment p join rental r on p.rental_id = r.rental_id 
+	JOIN inventory i on r.inventory_id = i.inventory_id 
+	JOIN film f on i.film_id = f.film_id 
+	JOIN film_category fc on f.film_id = fc.film_id 
+	JOIN category c on fc.category_id = c.category_id 
+group by c.name 
+order by gross_revenue DESC 
+LIMIT 5
